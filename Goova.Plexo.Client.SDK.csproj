@@ -70,10 +70,10 @@
   <ItemGroup>
     <Compile Include="App_Packages\LibLog.4.2\LibLog.cs" />
     <Compile Include="Certificates\CertificateHelper.cs" />
+    <Compile Include="Certificates\CertificateHelperFactory.cs" />
     <Compile Include="SecureCallback.svc.cs">
       <DependentUpon>SecureCallback.svc</DependentUpon>
     </Compile>
-    <Compile Include="Certificates\CertificateHelperFactory.cs" />
     <Compile Include="PaymentGatewayClient.cs" />
     <Compile Include="PaymentGatewayClientFactory.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
@@ -103,10 +103,6 @@
     <ProjectReference Include="Goova.Plexo.Models\Goova.Plexo.Models.csproj">
       <Project>{0fdddba6-b05f-4c41-b5eb-18f91e34e160}</Project>
       <Name>Goova.Plexo.Models</Name>
-    </ProjectReference>
-    <ProjectReference Include="Goova.JsonDataContractSerializer\Goova.JsonDataContractSerializer.csproj">
-      <Project>{f6b3bbd1-a222-43e6-af48-b03b71b69cf2}</Project>
-      <Name>Goova.JsonDataContractSerializer</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
