@@ -6,8 +6,8 @@ using System.ServiceModel;
 using System.ServiceModel.Description;
 using System.ServiceModel.Web;
 using System.Threading.Tasks;
-using Goova.ElSwitch.Client.SDK.Logging;
 using Goova.Plexo.Client.SDK.Certificates;
+using Goova.Plexo.Client.SDK.Logging;
 using Goova.Plexo.Exceptions;
 using Goova.Plexo.Helpers;
 

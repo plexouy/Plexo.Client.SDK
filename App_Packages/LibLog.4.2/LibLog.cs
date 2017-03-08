@@ -40,23 +40,23 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Microsoft.Design", "CA1020:AvoidNamespacesWithFewTypes", Scope = "namespace", Target = "Goova.ElSwitch.Client.SDK.Logging")]
-[assembly: SuppressMessage("Microsoft.Design", "CA1026:DefaultParametersShouldNotBeUsed", Scope = "member", Target = "Goova.ElSwitch.Client.SDK.Logging.Logger.#Invoke(Goova.ElSwitch.Client.SDK.Logging.LogLevel,System.Func`1<System.String>,System.Exception,System.Object[])")]
+[assembly: SuppressMessage("Microsoft.Design", "CA1020:AvoidNamespacesWithFewTypes", Scope = "namespace", Target = "Goova.Plexo.Client.SDK.Logging")]
+[assembly: SuppressMessage("Microsoft.Design", "CA1026:DefaultParametersShouldNotBeUsed", Scope = "member", Target = "Goova.Plexo.Client.SDK.Logging.Logger.#Invoke(Goova.Plexo.Client.SDK.Logging.LogLevel,System.Func`1<System.String>,System.Exception,System.Object[])")]
 
 // If you copied this file manually, you need to change all "YourRootNameSpace" so not to clash with other libraries
 // that use LibLog
 #if LIBLOG_PROVIDERS_ONLY
-namespace Goova.ElSwitch.Client.SDK.LibLog
+namespace Goova.Plexo.Client.SDK.LibLog
 #else
-namespace Goova.ElSwitch.Client.SDK.Logging
+namespace Goova.Plexo.Client.SDK.Logging
 #endif
 {
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
 #if LIBLOG_PROVIDERS_ONLY
-    using Goova.ElSwitch.Client.SDK.LibLog.LogProviders;
+    using Goova.Plexo.Client.SDK.LibLog.LogProviders;
 #else
-    using Goova.ElSwitch.Client.SDK.Logging.LogProviders;
+    using Goova.Plexo.Client.SDK.Logging.LogProviders;
 #endif
     using System;
 #if !LIBLOG_PROVIDERS_ONLY
@@ -714,9 +714,9 @@ namespace Goova.ElSwitch.Client.SDK.Logging
 }
 
 #if LIBLOG_PROVIDERS_ONLY
-namespace Goova.ElSwitch.Client.SDK.LibLog.LogProviders
+namespace Goova.Plexo.Client.SDK.LibLog.LogProviders
 #else
-namespace Goova.ElSwitch.Client.SDK.Logging.LogProviders
+namespace Goova.Plexo.Client.SDK.Logging.LogProviders
 #endif
 {
     using System;
