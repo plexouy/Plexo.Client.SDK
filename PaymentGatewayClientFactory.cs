@@ -1,21 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
+﻿using System.Collections.Generic;
 
-namespace Goova.ElSwitch.Client.SDK
+namespace Goova.Plexo.Client.SDK
 {
     public class PaymentGatewayClientFactory
     {
-        private static Dictionary<string,PaymentGatewayClient> _instances=new Dictionary<string, PaymentGatewayClient>();
+        private static readonly Dictionary<string,PaymentGatewayClient> Instances=new Dictionary<string, PaymentGatewayClient>();
 
         public static PaymentGatewayClient GetClient(string clientname)
         {
-            lock (_instances)
+            lock (Instances)
             {
-                if (!_instances.ContainsKey(clientname))
-                    _instances[clientname] = PaymentGatewayClient.Create(Properties.Settings.Default.PaymentServerUrl, clientname);
-                return _instances[clientname];
+                if (!Instances.ContainsKey(clientname))
+                    Instances[clientname] = PaymentGatewayClient.Create(ElSwitch.Client.SDK.Properties.Settings.Default.PaymentServerUrl, clientname);
+                return Instances[clientname];
             }
         }
 

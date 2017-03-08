@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Linq;
-using System.Reflection;
 using System.ServiceModel;
 using System.Threading.Tasks;
 using Goova.ElSwitch.Client.SDK.Logging;
+using Goova.Plexo.Client.SDK.Certificates;
 
-namespace Goova.ElSwitch.Client.SDK
+namespace Goova.Plexo.Client.SDK
 {
     [ServiceBehavior(IncludeExceptionDetailInFaults = true)]
     public class SecureCallback : ISecureCallback
     {
-        private static ICallback CallbackImplementation;
+        private static readonly ICallback CallbackImplementation;
         private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
         public async Task<ClientSignedResponse> Instrument(ServerSignedRequest<IntrumentCallback> instrument)
         {
-            ServerResponse<IntrumentCallback> sins = null;
+            ServerResponse<IntrumentCallback> sins;
             try
             {
                 PaymentGatewayClient cl = PaymentGatewayClientFactory.GetClient(instrument.Object.Object.Client);

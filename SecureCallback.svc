@@ -1,1 +1,1 @@
-﻿<%@ ServiceHost Language="C#" Debug="true" Service="Goova.ElSwitch.Client.SDK.SecureCallback" CodeBehind="SecureCallback.svc.cs" %>
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="Goova.Plexo.Client.SDK.SecureCallback" CodeBehind="SecureCallback.svc.cs" %>

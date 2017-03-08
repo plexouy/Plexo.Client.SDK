@@ -69,11 +69,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Packages\LibLog.4.2\LibLog.cs" />
-    <Compile Include="CertificateHelper.cs" />
+    <Compile Include="Certificates\CertificateHelper.cs" />
     <Compile Include="SecureCallback.svc.cs">
       <DependentUpon>SecureCallback.svc</DependentUpon>
     </Compile>
-    <Compile Include="CertificateHelperFactory.cs" />
+    <Compile Include="Certificates\CertificateHelperFactory.cs" />
     <Compile Include="PaymentGatewayClient.cs" />
     <Compile Include="PaymentGatewayClientFactory.cs" />
     <Compile Include="Properties\Settings.Designer.cs">

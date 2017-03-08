@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel;
@@ -8,10 +7,12 @@ using System.ServiceModel.Description;
 using System.ServiceModel.Web;
 using System.Threading.Tasks;
 using Goova.ElSwitch.Client.SDK.Logging;
-using Goova.ElSwitch.Exceptions;
-using ConfigurationException = Goova.ElSwitch.Exceptions.ConfigurationException;
+using Goova.Plexo.Client.SDK.Certificates;
+using Goova.Plexo.Exceptions;
+using Goova.Plexo.Helpers;
 
-namespace Goova.ElSwitch.Client.SDK
+
+namespace Goova.Plexo.Client.SDK
 {
     public class PaymentGatewayClient : ClientBase<ISecurePaymentGateway>, IPaymentGateway
     {
@@ -67,17 +68,9 @@ namespace Goova.ElSwitch.Client.SDK
 
         public async Task<ServerResponse<List<IssuerInfo>>> GetSupportedIssuers()
         {
-            try
-            {
-                ClientRequest r = new ClientRequest { Client = _clientName };
-                ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
-                return await UnwrapResponse(await Channel.GetSupportedIssuers(signed));
-
-            }
-            catch (Exception e)
-            {
-                throw;
-            }
+            ClientRequest r = new ClientRequest { Client = _clientName };
+            ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
+            return await UnwrapResponse(await Channel.GetSupportedIssuers(signed));
         }
 
         public async Task<ServerResponse<Transaction>> Purchase(PaymentRequest payment)
@@ -102,27 +95,30 @@ namespace Goova.ElSwitch.Client.SDK
             return new ClientRequest<T> {Client = _clientName, Request = obj};
         }
 
-        internal async Task<ServerResponse<T>> UnwrapResponse<T>(SignedServerResponse<T> resp)
+       
+
+        private async Task<SignatureHelper> GetSignatureHelper<T>(string fingerprint, ServerResponse<T> response)
         {
             if (!CertificateHelperFactory.Instance.VerifyKeys.ContainsKey(_clientName))
                 throw new ConfigurationException("Configuration do not have certificate information about the client '" + _clientName + "'");
-            RSAHelper c = CertificateHelperFactory.Instance.VerifyKeys[_clientName].FirstOrDefault(a => a.Key == resp.Object.Fingerprint).Value;
+            SignatureHelper c = CertificateHelperFactory.Instance.VerifyKeys[_clientName].FirstOrDefault(a => a.Key == fingerprint).Value;
             if (c == null)
             {
                 await CertificateHelperFactory.Instance.ServerCertSemaphore.WaitAsync();
                 try
                 {
-                    //Secure this over ssl
-                    SignedServerResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(resp.Object.Fingerprint);
+                    SignedServerResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(fingerprint);
                     if (r.Object.Object.ResultCode != ResultCodes.Ok)
                     {
-                        string msg = "Invalid or outdated Fingerprint, server returns: " + r.Object.Object.ErrorMessage ?? "";
+                        string msg = "Invalid or outdated Fingerprint, server returns: " + (r.Object.Object.ErrorMessage ?? "");
                         Logger.Error(msg);
-                        return new ServerResponse<T>() {ErrorMessage = msg, ResultCode = ResultCodes.InvalidFingerprint};
+                        response.ErrorMessage = msg;
+                        response.ResultCode = ResultCodes.InvalidFingerprint;
+                        return null;
                     }
-                    X509Certificate2 cert = new X509Certificate2(r.Object.Object.Response.Key);
-                    c = new RSAHelper(cert, false);
-                    RSAHelper verify = null;
+                    X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(r.Object.Object.Response.Key));
+                    c = new SignatureHelper(cert, false);
+                    SignatureHelper verify = null;
                     if (CertificateHelperFactory.Instance.VerifyKeys[_clientName].ContainsKey(r.Object.Fingerprint))
                         verify = CertificateHelperFactory.Instance.VerifyKeys[_clientName][r.Object.Fingerprint];
                     else if (r.Object.Fingerprint.Equals(r.Object.Object.Response.Fingerprint, StringComparison.InvariantCultureIgnoreCase))
@@ -131,96 +127,65 @@ namespace Goova.ElSwitch.Client.SDK
                     {
                         string msg = ("Fingerprint not found: " + r.Object.Fingerprint);
                         Logger.Error(msg);
-                        return new ServerResponse<T>() {ErrorMessage = msg, ResultCode = ResultCodes.InvalidFingerprint};
+                        response.ErrorMessage = msg;
+                        response.ResultCode = ResultCodes.InvalidFingerprint;
+                        return null;
                     }
                     verify.Verify<SignedServerResponse<PublicKeyInfo>, ServerResponse<PublicKeyInfo>>(r);
                     CertificateHelperFactory.Instance.VerifyKeys[_clientName].Add(r.Object.Object.Response.Fingerprint, c);
-
+                    return c;
                 }
                 catch (ResultCodeException e)
                 {
-                    Logger.ErrorException(e.Message,e);
-                    return new ServerResponse<T>() {ErrorMessage = e.Message, ResultCode = e.Code};
+                    Logger.ErrorException(e.Message, e);
+                    response.ErrorMessage = e.Message;
+                    response.ResultCode = e.Code;
+                    return null;
                 }
                 catch (Exception e)
                 {
                     Logger.ErrorException(e.Message, e);
-                    return new ServerResponse<T> {ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError};
+                    response.ErrorMessage = "System Error";
+                    response.ResultCode = ResultCodes.SystemError;
                 }
                 finally
                 {
                     CertificateHelperFactory.Instance.ServerCertSemaphore.Release();
                 }
             }
-            try
-            {
-                return c.Verify<SignedServerResponse<T>, ServerResponse<T>>(resp);
-            }
-            catch (ResultCodeException e)
-            {
-                Logger.ErrorException(e.Message, e);
-                return new ServerResponse<T>() {ErrorMessage = e.Message, ResultCode = e.Code};
-            }
-            catch (Exception e)
-            {
-                Logger.ErrorException(e.Message, e);
-                return new ServerResponse<T> {ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError};
-            }
+            return c;
         }
         internal async Task<ServerResponse<T>> UnwrapRequest<T>(ServerSignedRequest<T> resp)
         {
-            if (!CertificateHelperFactory.Instance.VerifyKeys.ContainsKey(_clientName))
-                throw new ConfigurationException("Configuration do not have certificate information about the client '" + _clientName + "'");
-            RSAHelper c = CertificateHelperFactory.Instance.VerifyKeys[_clientName].FirstOrDefault(a => a.Key == resp.Object.Fingerprint).Value;
+            ServerResponse<T> response = new ServerResponse<T>();
+            SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
             if (c == null)
-            {
-                await CertificateHelperFactory.Instance.ServerCertSemaphore.WaitAsync();
-                try
-                {
-                    //Secure this over ssl
-                    SignedServerResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(resp.Object.Fingerprint);
-                    if (r.Object.Object.ResultCode != ResultCodes.Ok)
-                    {
-                        string msg = "Invalid or outdated Fingerprint, server returns: " + r.Object.Object.ErrorMessage ?? "";
-                        Logger.Error(msg);
-                        return new ServerResponse<T>() { ErrorMessage = msg, ResultCode = ResultCodes.InvalidFingerprint };
-                    }
-                    X509Certificate2 cert = new X509Certificate2(r.Object.Object.Response.Key);
-                    c = new RSAHelper(cert, false);
-                    RSAHelper verify = null;
-                    if (CertificateHelperFactory.Instance.VerifyKeys[_clientName].ContainsKey(r.Object.Fingerprint))
-                        verify = CertificateHelperFactory.Instance.VerifyKeys[_clientName][r.Object.Fingerprint];
-                    else if (r.Object.Fingerprint.Equals(r.Object.Object.Response.Fingerprint, StringComparison.InvariantCultureIgnoreCase))
-                        verify = c;
-                    if (verify == null)
-                    {
-                        string msg = ("Fingerprint not found: " + r.Object.Fingerprint);
-                        Logger.Error(msg);
-                        return new ServerResponse<T>() { ErrorMessage = msg, ResultCode = ResultCodes.InvalidFingerprint };
-                    }
-                    verify.Verify<SignedServerResponse<PublicKeyInfo>, ServerResponse<PublicKeyInfo>>(r);
-                    CertificateHelperFactory.Instance.VerifyKeys[_clientName].Add(r.Object.Object.Response.Fingerprint, c);
-
-                }
-                catch (ResultCodeException e)
-                {
-                    Logger.ErrorException(e.Message, e);
-                    return new ServerResponse<T>() { ErrorMessage = e.Message, ResultCode = e.Code };
-                }
-                catch (Exception e)
-                {
-                    Logger.ErrorException(e.Message, e);
-                    return new ServerResponse<T> { ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError };
-                }
-                finally
-                {
-                    CertificateHelperFactory.Instance.ServerCertSemaphore.Release();
-                }
-            }
+                return response;
             try
             {
                 T obj = c.Verify<ServerSignedRequest<T>, T>(resp);
                 return new ServerResponse<T> { ResultCode = ResultCodes.Ok, Response = obj };
+            }
+            catch (ResultCodeException e)
+            {
+                Logger.ErrorException(e.Message, e);
+                return new ServerResponse<T>() { ErrorMessage = e.Message, ResultCode = e.Code };
+            }
+            catch (Exception e)
+            {
+                Logger.ErrorException(e.Message, e);
+                return new ServerResponse<T> { ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError };
+            }
+        }
+        internal async Task<ServerResponse<T>> UnwrapResponse<T>(SignedServerResponse<T> resp)
+        {
+            ServerResponse<T> response = new ServerResponse<T>();
+            SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
+            if (c == null)
+                return response;
+            try
+            {
+                return c.Verify<SignedServerResponse<T>, ServerResponse<T>>(resp);
             }
             catch (ResultCodeException e)
             {
