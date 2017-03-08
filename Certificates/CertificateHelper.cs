@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-using Goova.ElSwitch.Client.SDK.Properties;
+using Goova.Plexo.Client.SDK.Properties;
 using Goova.Plexo.Exceptions;
 using Goova.Plexo.Helpers;
 
