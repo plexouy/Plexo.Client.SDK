@@ -32,6 +32,7 @@ namespace Goova.Plexo.Client.SDK
             if (CallbackImplementation == null)
                 return GenerateError(ResultCodes.ClientServerError, instrument.Object.Object.Client, "Callback message lost.There is no ICallback implementation");
             ClientResponse cr=await CallbackImplementation.Instrument(sins.Response);
+            cr.Client = instrument.Object.Object.Client;
             try
             {
                 return CertificateHelperFactory.Instance.Sign<ClientSignedResponse, ClientResponse>(cr.Client, cr);
