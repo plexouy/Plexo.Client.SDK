@@ -16,7 +16,7 @@ namespace Goova.Plexo.Client.SDK
         public async Task<ClientSignedResponse> Instrument(ServerSignedRequest<IntrumentCallback> instrument)
         {
             ServerResponse<IntrumentCallback> sins;
-            try
+        try
             {
                 PaymentGatewayClient cl = PaymentGatewayClientFactory.GetClient(instrument.Object.Object.Client);
                 if (cl == null)

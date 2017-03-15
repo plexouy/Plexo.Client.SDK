@@ -60,6 +60,7 @@ namespace Goova.Plexo.Client.SDK
 
         public async Task<ServerResponse<string>> Authorize(Authorization authorization)
         {
+
             ClientRequest<Authorization> auth = WrapClient(authorization);
             ClientSignedRequest<Authorization> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<Authorization>, ClientRequest<Authorization>>(_clientName, auth);
             return await UnwrapResponse(await Channel.Authorize(signed));
@@ -107,7 +108,11 @@ namespace Goova.Plexo.Client.SDK
                 await CertificateHelperFactory.Instance.ServerCertSemaphore.WaitAsync();
                 try
                 {
-                    SignedServerResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(fingerprint);
+                    SignedServerResponse<PublicKeyInfo> r;
+                    using (var scope = new FlowingOperationContextScope(this.InnerChannel))
+                    {
+                        r = await Channel.GetServerPublicKey(fingerprint).ContinueOnScope(scope);
+                    }
                     if (r.Object.Object.ResultCode != ResultCodes.Ok)
                     {
                         string msg = "Invalid or outdated Fingerprint, server returns: " + (r.Object.Object.ErrorMessage ?? "");
@@ -157,6 +162,7 @@ namespace Goova.Plexo.Client.SDK
         }
         internal async Task<ServerResponse<T>> UnwrapRequest<T>(ServerSignedRequest<T> resp)
         {
+
             ServerResponse<T> response = new ServerResponse<T>();
             SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
             if (c == null)
