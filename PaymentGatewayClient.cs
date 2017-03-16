@@ -60,32 +60,43 @@ namespace Goova.Plexo.Client.SDK
 
         public async Task<ServerResponse<string>> Authorize(Authorization authorization)
         {
-
-            ClientRequest<Authorization> auth = WrapClient(authorization);
-            ClientSignedRequest<Authorization> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<Authorization>, ClientRequest<Authorization>>(_clientName, auth);
-            return await UnwrapResponse(await Channel.Authorize(signed));
+            using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
+            {
+                ClientRequest<Authorization> auth = WrapClient(authorization);
+                ClientSignedRequest<Authorization> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<Authorization>, ClientRequest<Authorization>>(_clientName, auth);
+                return await UnwrapResponse(await Channel.Authorize(signed)).ContinueOnScope(scope);
+            }
 
         }
 
         public async Task<ServerResponse<List<IssuerInfo>>> GetSupportedIssuers()
         {
-            ClientRequest r = new ClientRequest { Client = _clientName };
-            ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
-            return await UnwrapResponse(await Channel.GetSupportedIssuers(signed));
+            using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
+            {
+                ClientRequest r = new ClientRequest {Client = _clientName};
+                ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
+                return await UnwrapResponse(await Channel.GetSupportedIssuers(signed)).ContinueOnScope(scope);
+            }
         }
 
         public async Task<ServerResponse<Transaction>> Purchase(PaymentRequest payment)
         {
-            ClientRequest<PaymentRequest> paym = WrapClient(payment);
-            ClientSignedRequest<PaymentRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<PaymentRequest>, ClientRequest<PaymentRequest>>(_clientName, paym);
-            return await UnwrapResponse(await Channel.Purchase(signed));
+            using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
+            {
+                ClientRequest<PaymentRequest> paym = WrapClient(payment);
+                ClientSignedRequest<PaymentRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<PaymentRequest>, ClientRequest<PaymentRequest>>(_clientName, paym);
+                return await UnwrapResponse(await Channel.Purchase(signed)).ContinueOnScope(scope);
+            }
         }
 
         public async Task<ServerResponse<Transaction>> Cancel(CancelRequest cancel)
         {
-            ClientRequest<CancelRequest> paym = WrapClient(cancel);
-            ClientSignedRequest<CancelRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<CancelRequest>, ClientRequest<CancelRequest>>(_clientName, paym);
-            return await UnwrapResponse(await Channel.Cancel(signed));
+            using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
+            {
+                ClientRequest<CancelRequest> paym = WrapClient(cancel);
+                ClientSignedRequest<CancelRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<CancelRequest>, ClientRequest<CancelRequest>>(_clientName, paym);
+                return await UnwrapResponse(await Channel.Cancel(signed));
+            }
         }
 
 
@@ -166,7 +177,7 @@ namespace Goova.Plexo.Client.SDK
             ServerResponse<T> response = new ServerResponse<T>();
             SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
             if (c == null)
-                return response;
+                return new ServerResponse<T> {ResultCode = ResultCodes.InvalidFingerprint, ErrorMessage = "Unable to obtain private key for signature '" + resp.Object.Fingerprint + "'."};
             try
             {
                 T obj = c.Verify<ServerSignedRequest<T>, T>(resp);
