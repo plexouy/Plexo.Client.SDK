@@ -103,6 +103,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="Goova.JsonDataContractSerializer\Goova.JsonDataContractSerializer.csproj">
+      <Project>{F6B3BBD1-A222-43E6-AF48-B03B71B69CF2}</Project>
+      <Name>Goova.JsonDataContractSerializer</Name>
+    </ProjectReference>
     <ProjectReference Include="Goova.Plexo.Models\Goova.Plexo.Models.csproj">
       <Project>{0fdddba6-b05f-4c41-b5eb-18f91e34e160}</Project>
       <Name>Goova.Plexo.Models</Name>

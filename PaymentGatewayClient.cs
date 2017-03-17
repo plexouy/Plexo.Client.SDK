@@ -6,6 +6,7 @@ using System.ServiceModel;
 using System.ServiceModel.Description;
 using System.ServiceModel.Web;
 using System.Threading.Tasks;
+using Goova.JsonDataContractSerializer;
 using Goova.Plexo.Client.SDK.Certificates;
 using Goova.Plexo.Client.SDK.Logging;
 using Goova.Plexo.Exceptions;
@@ -37,15 +38,19 @@ namespace Goova.Plexo.Client.SDK
                     binding.Security.Mode = WebHttpSecurityMode.Transport;
                 ServiceEndpoint svc = new ServiceEndpoint(ContractDescription.GetContract(typeof(ISecurePaymentGateway)),
                     binding, new EndpointAddress(serverurl));
+                binding.ContentTypeMapper=new NewtonsoftJsonContentTypeMapper();
                 if (behavior == null)
-                    behavior = new WebHttpBehavior
+                {
+                    behavior = new NewtonsoftJsonBehavior
                     {
                         DefaultBodyStyle = WebMessageBodyStyle.Bare,
                         DefaultOutgoingRequestFormat = WebMessageFormat.Json,
-                        DefaultOutgoingResponseFormat = WebMessageFormat.Json,
-                        HelpEnabled = true
-                    };
+                        DefaultOutgoingResponseFormat = WebMessageFormat.Json
+                    };     
+                    
+                }
                 svc.Behaviors.Add(behavior);
+                
                 PaymentGatewayClient pgc = new PaymentGatewayClient(svc);
                 pgc._clientName = clientname;
                 return pgc;
@@ -60,43 +65,50 @@ namespace Goova.Plexo.Client.SDK
 
         public async Task<ServerResponse<string>> Authorize(Authorization authorization)
         {
+            SignedServerResponse<string> result = new SignedServerResponse<string>();
+            ClientRequest<Authorization> auth = WrapClient(authorization);
+            ClientSignedRequest<Authorization> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<Authorization>, ClientRequest<Authorization>>(_clientName, auth);
             using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
             {
-                ClientRequest<Authorization> auth = WrapClient(authorization);
-                ClientSignedRequest<Authorization> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<Authorization>, ClientRequest<Authorization>>(_clientName, auth);
-                return await UnwrapResponse(await Channel.Authorize(signed)).ContinueOnScope(scope);
+                result = await Channel.Authorize(signed).ContinueOnScope(scope);
             }
-
+            return await UnwrapResponse(result);
         }
 
         public async Task<ServerResponse<List<IssuerInfo>>> GetSupportedIssuers()
         {
+            SignedServerResponse<List<IssuerInfo>> result;
+            ClientRequest r = new ClientRequest { Client = _clientName };
+            ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
             using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
             {
-                ClientRequest r = new ClientRequest {Client = _clientName};
-                ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
-                return await UnwrapResponse(await Channel.GetSupportedIssuers(signed)).ContinueOnScope(scope);
+                result = await Channel.GetSupportedIssuers(signed).ContinueOnScope(scope);
             }
+            return await UnwrapResponse(result);
         }
 
         public async Task<ServerResponse<Transaction>> Purchase(PaymentRequest payment)
         {
+            SignedServerResponse<Transaction> result;
+            ClientRequest<PaymentRequest> paym = WrapClient(payment);
+            ClientSignedRequest<PaymentRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<PaymentRequest>, ClientRequest<PaymentRequest>>(_clientName, paym);
             using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
             {
-                ClientRequest<PaymentRequest> paym = WrapClient(payment);
-                ClientSignedRequest<PaymentRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<PaymentRequest>, ClientRequest<PaymentRequest>>(_clientName, paym);
-                return await UnwrapResponse(await Channel.Purchase(signed)).ContinueOnScope(scope);
+                result=await Channel.Purchase(signed).ContinueOnScope(scope);
             }
+            return await UnwrapResponse(result);
         }
 
         public async Task<ServerResponse<Transaction>> Cancel(CancelRequest cancel)
         {
+            SignedServerResponse<Transaction> result;
+            ClientRequest<CancelRequest> paym = WrapClient(cancel);
+            ClientSignedRequest<CancelRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<CancelRequest>, ClientRequest<CancelRequest>>(_clientName, paym);
             using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
             {
-                ClientRequest<CancelRequest> paym = WrapClient(cancel);
-                ClientSignedRequest<CancelRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<CancelRequest>, ClientRequest<CancelRequest>>(_clientName, paym);
-                return await UnwrapResponse(await Channel.Cancel(signed));
+                result=await Channel.Cancel(signed).ContinueOnScope(scope);
             }
+            return await UnwrapResponse(result);
         }
 
 
