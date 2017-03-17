@@ -5,6 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel;
 using System.ServiceModel.Description;
 using System.ServiceModel.Web;
+using System.Threading;
 using System.Threading.Tasks;
 using Goova.JsonDataContractSerializer;
 using Goova.Plexo.Client.SDK.Certificates;
@@ -65,50 +66,68 @@ namespace Goova.Plexo.Client.SDK
 
         public async Task<ServerResponse<string>> Authorize(Authorization authorization)
         {
-            SignedServerResponse<string> result = new SignedServerResponse<string>();
             ClientRequest<Authorization> auth = WrapClient(authorization);
             ClientSignedRequest<Authorization> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<Authorization>, ClientRequest<Authorization>>(_clientName, auth);
-            using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
             {
-                result = await Channel.Authorize(signed).ContinueOnScope(scope);
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await UnwrapResponse(await Channel.Authorize(signed));
             }
-            return await UnwrapResponse(result);
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+
         }
 
         public async Task<ServerResponse<List<IssuerInfo>>> GetSupportedIssuers()
         {
-            SignedServerResponse<List<IssuerInfo>> result;
             ClientRequest r = new ClientRequest { Client = _clientName };
             ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
-            using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
             {
-                result = await Channel.GetSupportedIssuers(signed).ContinueOnScope(scope);
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await UnwrapResponse(await Channel.GetSupportedIssuers(signed));
             }
-            return await UnwrapResponse(result);
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+
         }
 
         public async Task<ServerResponse<Transaction>> Purchase(PaymentRequest payment)
         {
-            SignedServerResponse<Transaction> result;
             ClientRequest<PaymentRequest> paym = WrapClient(payment);
             ClientSignedRequest<PaymentRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<PaymentRequest>, ClientRequest<PaymentRequest>>(_clientName, paym);
-            using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
             {
-                result=await Channel.Purchase(signed).ContinueOnScope(scope);
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await UnwrapResponse(await Channel.Purchase(signed));
             }
-            return await UnwrapResponse(result);
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
         }
 
         public async Task<ServerResponse<Transaction>> Cancel(CancelRequest cancel)
         {
-            SignedServerResponse<Transaction> result;
             ClientRequest<CancelRequest> paym = WrapClient(cancel);
             ClientSignedRequest<CancelRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<CancelRequest>, ClientRequest<CancelRequest>>(_clientName, paym);
-            using (FlowingOperationContextScope scope = new FlowingOperationContextScope(this.InnerChannel))
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
             {
-                result=await Channel.Cancel(signed).ContinueOnScope(scope);
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await UnwrapResponse(await Channel.Cancel(signed));
             }
-            return await UnwrapResponse(result);
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
         }
 
 
@@ -131,11 +150,7 @@ namespace Goova.Plexo.Client.SDK
                 await CertificateHelperFactory.Instance.ServerCertSemaphore.WaitAsync();
                 try
                 {
-                    SignedServerResponse<PublicKeyInfo> r;
-                    using (var scope = new FlowingOperationContextScope(this.InnerChannel))
-                    {
-                        r = await Channel.GetServerPublicKey(fingerprint).ContinueOnScope(scope);
-                    }
+                    SignedServerResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(fingerprint);
                     if (r.Object.Object.ResultCode != ResultCodes.Ok)
                     {
                         string msg = "Invalid or outdated Fingerprint, server returns: " + (r.Object.Object.ErrorMessage ?? "");
