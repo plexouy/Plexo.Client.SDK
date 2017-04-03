@@ -4,6 +4,7 @@ using System.ServiceModel;
 using System.Threading.Tasks;
 using Goova.Plexo.Client.SDK.Certificates;
 using Goova.Plexo.Client.SDK.Logging;
+using Goova.Plexo.Helpers;
 
 namespace Goova.Plexo.Client.SDK
 {
@@ -21,7 +22,11 @@ namespace Goova.Plexo.Client.SDK
                 PaymentGatewayClient cl = PaymentGatewayClientFactory.GetClient(instrument.Object.Object.Client);
                 if (cl == null)
                     return GenerateError(ResultCodes.ClientServerError, instrument.Object.Object.Client, "Unable to locate PaymentGatewayClient for client '" + instrument.Object.Object.Client + "'.");
-                sins = await cl.UnwrapRequest(instrument);
+                using (var scope = new FlowingOperationContextScope(cl.InnerChannel))
+                {
+                    sins = await cl.UnwrapRequest(instrument).ContinueOnScope(scope);
+                
+                }
                 if (sins.ResultCode!=ResultCodes.Ok)
                     return GenerateError(ResultCodes.ClientServerError, instrument.Object.Object.Client, sins.ErrorMessage);
             }

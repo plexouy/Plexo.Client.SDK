@@ -5,7 +5,9 @@ using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel;
 using System.ServiceModel.Description;
 using System.ServiceModel.Web;
+using System.Threading;
 using System.Threading.Tasks;
+using Goova.JsonDataContractSerializer;
 using Goova.Plexo.Client.SDK.Certificates;
 using Goova.Plexo.Client.SDK.Logging;
 using Goova.Plexo.Exceptions;
@@ -37,15 +39,19 @@ namespace Goova.Plexo.Client.SDK
                     binding.Security.Mode = WebHttpSecurityMode.Transport;
                 ServiceEndpoint svc = new ServiceEndpoint(ContractDescription.GetContract(typeof(ISecurePaymentGateway)),
                     binding, new EndpointAddress(serverurl));
+                binding.ContentTypeMapper=new NewtonsoftJsonContentTypeMapper();
                 if (behavior == null)
-                    behavior = new WebHttpBehavior
+                {
+                    behavior = new NewtonsoftJsonBehavior
                     {
                         DefaultBodyStyle = WebMessageBodyStyle.Bare,
                         DefaultOutgoingRequestFormat = WebMessageFormat.Json,
-                        DefaultOutgoingResponseFormat = WebMessageFormat.Json,
-                        HelpEnabled = true
-                    };
+                        DefaultOutgoingResponseFormat = WebMessageFormat.Json
+                    };     
+                    
+                }
                 svc.Behaviors.Add(behavior);
+                
                 PaymentGatewayClient pgc = new PaymentGatewayClient(svc);
                 pgc._clientName = clientname;
                 return pgc;
@@ -60,10 +66,18 @@ namespace Goova.Plexo.Client.SDK
 
         public async Task<ServerResponse<string>> Authorize(Authorization authorization)
         {
-
             ClientRequest<Authorization> auth = WrapClient(authorization);
             ClientSignedRequest<Authorization> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<Authorization>, ClientRequest<Authorization>>(_clientName, auth);
-            return await UnwrapResponse(await Channel.Authorize(signed));
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await UnwrapResponse(await Channel.Authorize(signed));
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
 
         }
 
@@ -71,21 +85,49 @@ namespace Goova.Plexo.Client.SDK
         {
             ClientRequest r = new ClientRequest { Client = _clientName };
             ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
-            return await UnwrapResponse(await Channel.GetSupportedIssuers(signed));
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await UnwrapResponse(await Channel.GetSupportedIssuers(signed));
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+
         }
 
         public async Task<ServerResponse<Transaction>> Purchase(PaymentRequest payment)
         {
             ClientRequest<PaymentRequest> paym = WrapClient(payment);
             ClientSignedRequest<PaymentRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<PaymentRequest>, ClientRequest<PaymentRequest>>(_clientName, paym);
-            return await UnwrapResponse(await Channel.Purchase(signed));
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await UnwrapResponse(await Channel.Purchase(signed));
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
         }
 
         public async Task<ServerResponse<Transaction>> Cancel(CancelRequest cancel)
         {
             ClientRequest<CancelRequest> paym = WrapClient(cancel);
             ClientSignedRequest<CancelRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<CancelRequest>, ClientRequest<CancelRequest>>(_clientName, paym);
-            return await UnwrapResponse(await Channel.Cancel(signed));
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await UnwrapResponse(await Channel.Cancel(signed));
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
         }
 
 
@@ -108,11 +150,7 @@ namespace Goova.Plexo.Client.SDK
                 await CertificateHelperFactory.Instance.ServerCertSemaphore.WaitAsync();
                 try
                 {
-                    SignedServerResponse<PublicKeyInfo> r;
-                    using (var scope = new FlowingOperationContextScope(this.InnerChannel))
-                    {
-                        r = await Channel.GetServerPublicKey(fingerprint).ContinueOnScope(scope);
-                    }
+                    SignedServerResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(fingerprint);
                     if (r.Object.Object.ResultCode != ResultCodes.Ok)
                     {
                         string msg = "Invalid or outdated Fingerprint, server returns: " + (r.Object.Object.ErrorMessage ?? "");
@@ -166,7 +204,7 @@ namespace Goova.Plexo.Client.SDK
             ServerResponse<T> response = new ServerResponse<T>();
             SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
             if (c == null)
-                return response;
+                return new ServerResponse<T> {ResultCode = ResultCodes.InvalidFingerprint, ErrorMessage = "Unable to obtain private key for signature '" + resp.Object.Fingerprint + "'."};
             try
             {
                 T obj = c.Verify<ServerSignedRequest<T>, T>(resp);
