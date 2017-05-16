@@ -1,6 +1,6 @@
 [submodule "Goova.JsonDataContractSerializer"]
 	path = Goova.JsonDataContractSerializer
 	url = https://github.com/gOOvaUY/Goova.JsonDataContractSerializer
-[submodule "Goova.Plexo.Models"]
-	path = Goova.Plexo.Models
-	url = https://github.com/gOOvaUY/Goova.Plexo.Models
+[submodule "Plexo.Models"]
+	path = Plexo.Models
+	url = https://github.com/gOOvaUY/Plexo.Models

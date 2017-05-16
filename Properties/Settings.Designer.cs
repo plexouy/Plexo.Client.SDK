@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Goova.Plexo.Client.SDK.Properties {
+namespace Plexo.Client.SDK.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]

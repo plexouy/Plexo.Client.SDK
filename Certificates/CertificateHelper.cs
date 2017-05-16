@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-using Goova.Plexo.Client.SDK.Properties;
-using Goova.Plexo.Exceptions;
-using Goova.Plexo.Helpers;
+using Plexo.Client.SDK.Properties;
+using Plexo.Exceptions;
+using Plexo.Helpers;
 
-namespace Goova.Plexo.Client.SDK.Certificates
+namespace Plexo.Client.SDK.Certificates
 {
     public class CertificateHelper
     {

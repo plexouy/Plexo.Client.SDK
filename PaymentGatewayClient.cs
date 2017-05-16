@@ -8,13 +8,13 @@ using System.ServiceModel.Web;
 using System.Threading;
 using System.Threading.Tasks;
 using Goova.JsonDataContractSerializer;
-using Goova.Plexo.Client.SDK.Certificates;
-using Goova.Plexo.Client.SDK.Logging;
-using Goova.Plexo.Exceptions;
-using Goova.Plexo.Helpers;
+using Plexo.Client.SDK.Certificates;
+using Plexo.Client.SDK.Logging;
+using Plexo.Exceptions;
+using Plexo.Helpers;
 
 
-namespace Goova.Plexo.Client.SDK
+namespace Plexo.Client.SDK
 {
     public class PaymentGatewayClient : ClientBase<ISecurePaymentGateway>, IPaymentGateway
     {

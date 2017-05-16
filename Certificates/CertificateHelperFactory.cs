@@ -1,6 +1,6 @@
-﻿using Goova.Plexo.Client.SDK.Certificates;
+﻿using Plexo.Client.SDK.Certificates;
 
-namespace Goova.Plexo.Client.SDK.Certificates
+namespace Plexo.Client.SDK.Certificates
 {
     public class CertificateHelperFactory
     {

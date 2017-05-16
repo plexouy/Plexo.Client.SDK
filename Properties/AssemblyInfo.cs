@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Goova.Plexo.Client.SDK")]
+[assembly: AssemblyTitle("Plexo.Client.SDK")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Goova.Plexo.Client.SDK")]
+[assembly: AssemblyProduct("Plexo.Client.SDK")]
 [assembly: AssemblyCopyright("Copyright ©  2017 gOOva")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

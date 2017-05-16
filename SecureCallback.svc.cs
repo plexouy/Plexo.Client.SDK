@@ -5,11 +5,11 @@ using System.Linq;
 using System.Reflection;
 using System.ServiceModel;
 using System.Threading.Tasks;
-using Goova.Plexo.Client.SDK.Certificates;
-using Goova.Plexo.Client.SDK.Logging;
-using Goova.Plexo.Helpers;
+using Plexo.Client.SDK.Certificates;
+using Plexo.Client.SDK.Logging;
+using Plexo.Helpers;
 
-namespace Goova.Plexo.Client.SDK
+namespace Plexo.Client.SDK
 {
     [ServiceBehavior(IncludeExceptionDetailInFaults = true)]
     public class SecureCallback : ISecureCallback

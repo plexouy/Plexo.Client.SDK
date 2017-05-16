@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Goova.Plexo.Client.SDK
+namespace Plexo.Client.SDK
 {
     public class PaymentGatewayClientFactory
     {
