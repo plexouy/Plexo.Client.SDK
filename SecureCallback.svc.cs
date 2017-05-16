@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.ServiceModel;
 using System.Threading.Tasks;
 using Goova.Plexo.Client.SDK.Certificates;
@@ -60,6 +63,27 @@ namespace Goova.Plexo.Client.SDK
         static SecureCallback()
         {
             CallbackImplementation = (ICallback)AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a => a.GetInterfaces().Contains(typeof(ICallback))).Select(a => Activator.CreateInstance(a)).FirstOrDefault();
+            if (CallbackImplementation == null)
+            {
+                List<Assembly> asse = new List<Assembly>();
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                UriBuilder uri = new UriBuilder(assembly.GetName().CodeBase);
+                string dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
+                foreach (string dll in Directory.GetFiles(dirname, "*.dll", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        asse.Add(Assembly.LoadFile(dll));
+                    }
+                    catch (FileLoadException loadEx)
+                    {
+                    }
+                    catch (BadImageFormatException imgEx)
+                    {
+                    }
+                }
+                CallbackImplementation = (ICallback)asse.SelectMany(a => a.GetTypes()).Where(a => a.GetInterfaces().Contains(typeof(ICallback))).Select(a => Activator.CreateInstance(a)).FirstOrDefault();
+            }
             if (CallbackImplementation==null)
                 Logger.Error("There is no ICallback implementation");
         }
