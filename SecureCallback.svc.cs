@@ -20,7 +20,7 @@ namespace Plexo.Client.SDK
         public async Task<ClientSignedResponse> Instrument(ServerSignedRequest<IntrumentCallback> instrument)
         {
             ServerResponse<IntrumentCallback> sins;
-        try
+            try
             {
                 PaymentGatewayClient cl = PaymentGatewayClientFactory.GetClient(instrument.Object.Object.Client);
                 if (cl == null)
@@ -51,6 +51,42 @@ namespace Plexo.Client.SDK
             }
         }
 
+        public async Task<ClientSignedResponse> Payment(ServerSignedRequest<TransactionCallback> transaction)
+        {
+
+            ServerResponse<TransactionCallback> sins;
+            try
+            {
+                PaymentGatewayClient cl = PaymentGatewayClientFactory.GetClient(transaction.Object.Object.Client);
+                if (cl == null)
+                    return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, "Unable to locate PaymentGatewayClient for client '" + transaction.Object.Object.Client + "'.");
+                using (var scope = new FlowingOperationContextScope(cl.InnerChannel))
+                {
+                    sins = await cl.UnwrapRequest(transaction).ContinueOnScope(scope);
+
+                }
+                if (sins.ResultCode != ResultCodes.Ok)
+                    return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, sins.ErrorMessage);
+            }
+            catch (Exception e)
+            {
+                return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, "System Error", e.ToString());
+            }
+            if (CallbackImplementation == null)
+                return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, "Callback message lost.There is no ICallback implementation");
+            ClientResponse cr = await CallbackImplementation.Payment(sins.Response);
+            cr.Client = transaction.Object.Object.Client;
+            try
+            {
+                return CertificateHelperFactory.Instance.Sign<ClientSignedResponse, ClientResponse>(cr.Client, cr);
+            }
+            catch (Exception e)
+            {
+                return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, "System Error", e.ToString());
+            }
+        }
+
+
         private ClientSignedResponse GenerateError(ResultCodes resultcode, string client, string msg, string logmsg=null)
         {
             Logger.Error(logmsg ?? msg);
@@ -69,17 +105,20 @@ namespace Plexo.Client.SDK
                 Assembly assembly = Assembly.GetExecutingAssembly();
                 UriBuilder uri = new UriBuilder(assembly.GetName().CodeBase);
                 string dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
-                foreach (string dll in Directory.GetFiles(dirname, "*.dll", SearchOption.AllDirectories))
+                if (!string.IsNullOrEmpty(dirname))
                 {
-                    try
+                    foreach (string dll in Directory.GetFiles(dirname, "*.dll", SearchOption.AllDirectories))
                     {
-                        asse.Add(Assembly.LoadFile(dll));
-                    }
-                    catch (FileLoadException loadEx)
-                    {
-                    }
-                    catch (BadImageFormatException imgEx)
-                    {
+                        try
+                        {
+                            asse.Add(Assembly.LoadFile(dll));
+                        }
+                        catch (FileLoadException)
+                        {
+                        }
+                        catch (BadImageFormatException)
+                        {
+                        }
                     }
                 }
                 CallbackImplementation = (ICallback)asse.SelectMany(a => a.GetTypes()).Where(a => a.GetInterfaces().Contains(typeof(ICallback))).Select(a => Activator.CreateInstance(a)).FirstOrDefault();

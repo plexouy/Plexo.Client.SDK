@@ -66,30 +66,37 @@ namespace Plexo.Client.SDK
 
         public async Task<ServerResponse<string>> Authorize(Authorization authorization)
         {
-            ClientRequest<Authorization> auth = WrapClient(authorization);
-            ClientSignedRequest<Authorization> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<Authorization>, ClientRequest<Authorization>>(_clientName, auth);
             var currentSynchronizationContext = SynchronizationContext.Current;
             try
             {
                 SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
-                return await UnwrapResponse(await Channel.Authorize(signed));
+                return await WrapperTS(Channel.Authorize, authorization);
             }
             finally
             {
                 SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
             }
-
         }
-
+        public async Task<ServerResponse> DeleteInstruments(DeleteInstrumentRequest info)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperT(Channel.DeleteInstruments, info);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }            
+        }
         public async Task<ServerResponse<List<IssuerInfo>>> GetSupportedIssuers()
         {
-            ClientRequest r = new ClientRequest { Client = _clientName };
-            ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
             var currentSynchronizationContext = SynchronizationContext.Current;
             try
             {
                 SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
-                return await UnwrapResponse(await Channel.GetSupportedIssuers(signed));
+                return await WrapperS(Channel.GetSupportedIssuers);
             }
             finally
             {
@@ -97,16 +104,126 @@ namespace Plexo.Client.SDK
             }
 
         }
+        public async Task<ServerResponse<List<Commerce>>> GetCommerces()
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperS(Channel.GetCommerces);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+        public async Task<ServerResponse<Commerce>> AddCommerce(CommerceRequest commerce)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.AddCommerce, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<Commerce>> ModifyCommerce(CommerceModifyRequest commerce)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.ModifyCommerce, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse> DeleteCommerce(CommerceIdRequest commerce)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperT(Channel.DeleteCommerce, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+
+        }
+
+        public async Task<ServerResponse> SetDefaultCommerce(CommerceIdRequest commerce)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperT(Channel.SetDefaultCommerce, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<List<IssuerData>>> GetCommerceIssuers(CommerceIdRequest commerce)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.GetCommerceIssuers, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<IssuerData>> AddIssuerCommerce(IssuerData commerce)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.AddIssuerCommerce, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse> DeleteIssuerCommerce(CommerceIssuerIdRequest commerce)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperT(Channel.DeleteIssuerCommerce, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
 
         public async Task<ServerResponse<Transaction>> Purchase(PaymentRequest payment)
         {
-            ClientRequest<PaymentRequest> paym = WrapClient(payment);
-            ClientSignedRequest<PaymentRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<PaymentRequest>, ClientRequest<PaymentRequest>>(_clientName, paym);
             var currentSynchronizationContext = SynchronizationContext.Current;
             try
             {
                 SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
-                return await UnwrapResponse(await Channel.Purchase(signed));
+                return await WrapperTS(Channel.Purchase, payment);
             }
             finally
             {
@@ -114,15 +231,69 @@ namespace Plexo.Client.SDK
             }
         }
 
-        public async Task<ServerResponse<Transaction>> Cancel(CancelRequest cancel)
+        public async Task<ServerResponse<Transaction>> Cancel(Reference cancel)
         {
-            ClientRequest<CancelRequest> paym = WrapClient(cancel);
-            ClientSignedRequest<CancelRequest> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<CancelRequest>, ClientRequest<CancelRequest>>(_clientName, paym);
             var currentSynchronizationContext = SynchronizationContext.Current;
             try
             {
                 SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
-                return await UnwrapResponse(await Channel.Cancel(signed));
+                return await WrapperTS(Channel.Cancel, cancel);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<Transaction>> StartReserve(ReserveRequest payment)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.StartReserve, payment);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<Transaction>> EndReserve(Reserve reserve)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.EndReserve, reserve);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<Transaction>> Status(Reference payment)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.Status, payment);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<List<InstrumentWithMetadata>>> GetInstruments(AuthorizationInfo info)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.GetInstruments, info);
             }
             finally
             {
@@ -132,6 +303,25 @@ namespace Plexo.Client.SDK
 
 
 
+        private async Task<ServerResponse<S>> WrapperTS<T, S>(Func<ClientSignedRequest<T>, Task<ServerSignedResponse<S>>> func, T data)
+        {
+            ClientRequest<T> auth = WrapClient(data);
+            ClientSignedRequest<T> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<T>, ClientRequest<T>>(_clientName, auth);
+            return await UnwrapResponse(await func(signed));
+        }
+
+        private async Task<ServerResponse> WrapperT<T>(Func<ClientSignedRequest<T>, Task<ServerSignedResponse>> func, T data)
+        {
+            ClientRequest<T> auth = WrapClient(data);
+            ClientSignedRequest<T> signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest<T>, ClientRequest<T>>(_clientName, auth);
+            return await UnwrapResponse(await func(signed));
+        }
+        private async Task<ServerResponse<S>> WrapperS<S>(Func<ClientSignedRequest, Task<ServerSignedResponse<S>>> func)
+        {
+            ClientRequest r = new ClientRequest { Client = _clientName };
+            ClientSignedRequest signed = CertificateHelperFactory.Instance.Sign<ClientSignedRequest, ClientRequest>(_clientName, r);
+            return await UnwrapResponse(await func(signed));
+        }
 
         private ClientRequest<T> WrapClient<T>(T obj)
         {
@@ -140,7 +330,7 @@ namespace Plexo.Client.SDK
 
        
 
-        private async Task<SignatureHelper> GetSignatureHelper<T>(string fingerprint, ServerResponse<T> response)
+        private async Task<SignatureHelper> GetSignatureHelper(string fingerprint, ServerResponse response)
         {
             if (!CertificateHelperFactory.Instance.VerifyKeys.ContainsKey(_clientName))
                 throw new ConfigurationException("Configuration do not have certificate information about the client '" + _clientName + "'");
@@ -150,7 +340,7 @@ namespace Plexo.Client.SDK
                 await CertificateHelperFactory.Instance.ServerCertSemaphore.WaitAsync();
                 try
                 {
-                    SignedServerResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(fingerprint);
+                    ServerSignedResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(fingerprint);
                     if (r.Object.Object.ResultCode != ResultCodes.Ok)
                     {
                         string msg = "Invalid or outdated Fingerprint, server returns: " + (r.Object.Object.ErrorMessage ?? "");
@@ -174,7 +364,7 @@ namespace Plexo.Client.SDK
                         response.ResultCode = ResultCodes.InvalidFingerprint;
                         return null;
                     }
-                    verify.Verify<SignedServerResponse<PublicKeyInfo>, ServerResponse<PublicKeyInfo>>(r);
+                    verify.Verify<ServerSignedResponse<PublicKeyInfo>, ServerResponse<PublicKeyInfo>>(r);
                     CertificateHelperFactory.Instance.VerifyKeys[_clientName].Add(r.Object.Object.Response.Fingerprint, c);
                     return c;
                 }
@@ -221,7 +411,7 @@ namespace Plexo.Client.SDK
                 return new ServerResponse<T> { ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError };
             }
         }
-        internal async Task<ServerResponse<T>> UnwrapResponse<T>(SignedServerResponse<T> resp)
+        internal async Task<ServerResponse<T>> UnwrapResponse<T>(ServerSignedResponse<T> resp)
         {
             ServerResponse<T> response = new ServerResponse<T>();
             SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
@@ -229,7 +419,7 @@ namespace Plexo.Client.SDK
                 return response;
             try
             {
-                return c.Verify<SignedServerResponse<T>, ServerResponse<T>>(resp);
+                return c.Verify<ServerSignedResponse<T>, ServerResponse<T>>(resp);
             }
             catch (ResultCodeException e)
             {
@@ -240,6 +430,27 @@ namespace Plexo.Client.SDK
             {
                 Logger.ErrorException(e.Message, e);
                 return new ServerResponse<T> { ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError };
+            }
+        }
+        internal async Task<ServerResponse> UnwrapResponse(ServerSignedResponse resp)
+        {
+            ServerResponse response = new ServerResponse();
+            SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
+            if (c == null)
+                return response;
+            try
+            {
+                return c.Verify<ServerSignedResponse, ServerResponse>(resp);
+            }
+            catch (ResultCodeException e)
+            {
+                Logger.ErrorException(e.Message, e);
+                return new ServerResponse { ErrorMessage = e.Message, ResultCode = e.Code };
+            }
+            catch (Exception e)
+            {
+                Logger.ErrorException(e.Message, e);
+                return new ServerResponse { ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError };
             }
         }
     }

@@ -1,5 +1,4 @@
-﻿using Plexo.Client.SDK.Certificates;
-
+﻿
 namespace Plexo.Client.SDK.Certificates
 {
     public class CertificateHelperFactory
