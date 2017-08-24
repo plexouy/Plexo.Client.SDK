@@ -64,7 +64,7 @@ namespace Plexo.Client.SDK
 
         }
 
-        public async Task<ServerResponse<string>> Authorize(Authorization authorization)
+        public async Task<ServerResponse<Session>> Authorize(Authorization authorization)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
             try
@@ -77,13 +77,13 @@ namespace Plexo.Client.SDK
                 SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
             }
         }
-        public async Task<ServerResponse> DeleteInstruments(DeleteInstrumentRequest info)
+        public async Task<ServerResponse> DeleteInstrument(DeleteInstrumentRequest info)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
             try
             {
                 SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
-                return await WrapperT(Channel.DeleteInstruments, info);
+                return await WrapperT(Channel.DeleteInstrument, info);
             }
             finally
             {
@@ -231,7 +231,7 @@ namespace Plexo.Client.SDK
             }
         }
 
-        public async Task<ServerResponse<Transaction>> Cancel(Reference cancel)
+        public async Task<ServerResponse<Transaction>> Cancel(CancelRequest cancel)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
             try
@@ -287,7 +287,7 @@ namespace Plexo.Client.SDK
             }
         }
 
-        public async Task<ServerResponse<List<InstrumentWithMetadata>>> GetInstruments(AuthorizationInfo info)
+        public async Task<ServerResponse<List<PaymentInstrument>>> GetInstruments(AuthorizationInfo info)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
             try
@@ -333,7 +333,7 @@ namespace Plexo.Client.SDK
         private async Task<SignatureHelper> GetSignatureHelper(string fingerprint, ServerResponse response)
         {
             if (!CertificateHelperFactory.Instance.VerifyKeys.ContainsKey(_clientName))
-                throw new ConfigurationException("Configuration do not have certificate information about the client '" + _clientName + "'");
+                throw new ConfigurationException(("en",$"Configuration do not have certificate information about the client '{_clientName}'"), ("es", $"La configuracion no tiene el certificado del cliente '{_clientName}'"));
             SignatureHelper c = CertificateHelperFactory.Instance.VerifyKeys[_clientName].FirstOrDefault(a => a.Key == fingerprint).Value;
             if (c == null)
             {
@@ -342,13 +342,7 @@ namespace Plexo.Client.SDK
                 {
                     ServerSignedResponse<PublicKeyInfo> r = await Channel.GetServerPublicKey(fingerprint);
                     if (r.Object.Object.ResultCode != ResultCodes.Ok)
-                    {
-                        string msg = "Invalid or outdated Fingerprint, server returns: " + (r.Object.Object.ErrorMessage ?? "");
-                        Logger.Error(msg);
-                        response.ErrorMessage = msg;
-                        response.ResultCode = ResultCodes.InvalidFingerprint;
-                        return null;
-                    }
+                        throw new FingerprintException(("en", "Invalid or outdated Fingerprint, server returns: " + (r.Object.Object.ErrorMessage ?? "")), ("es", "Huella invalida o vieja, el servido retorna: " + ((r.Object.Object.I18NErrorMessages.ContainsKey("es") ? r.Object.Object.I18NErrorMessages["es"] : r.Object.Object.ErrorMessage) ?? "")));
                     X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(r.Object.Object.Response.Key));
                     c = new SignatureHelper(cert, false);
                     SignatureHelper verify = null;
@@ -357,29 +351,10 @@ namespace Plexo.Client.SDK
                     else if (r.Object.Fingerprint.Equals(r.Object.Object.Response.Fingerprint, StringComparison.InvariantCultureIgnoreCase))
                         verify = c;
                     if (verify == null)
-                    {
-                        string msg = ("Fingerprint not found: " + r.Object.Fingerprint);
-                        Logger.Error(msg);
-                        response.ErrorMessage = msg;
-                        response.ResultCode = ResultCodes.InvalidFingerprint;
-                        return null;
-                    }
+                        throw new FingerprintException(("en", "Fingerprint not found: " + r.Object.Fingerprint), ("es", "Huella no encontrada: " + r.Object.Fingerprint));
                     verify.Verify<ServerSignedResponse<PublicKeyInfo>, ServerResponse<PublicKeyInfo>>(r);
                     CertificateHelperFactory.Instance.VerifyKeys[_clientName].Add(r.Object.Object.Response.Fingerprint, c);
                     return c;
-                }
-                catch (ResultCodeException e)
-                {
-                    Logger.ErrorException(e.Message, e);
-                    response.ErrorMessage = e.Message;
-                    response.ResultCode = e.Code;
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    Logger.ErrorException(e.Message, e);
-                    response.ErrorMessage = "System Error";
-                    response.ResultCode = ResultCodes.SystemError;
                 }
                 finally
                 {
@@ -387,70 +362,51 @@ namespace Plexo.Client.SDK
                 }
             }
             return c;
+
         }
         internal async Task<ServerResponse<T>> UnwrapRequest<T>(ServerSignedRequest<T> resp)
         {
 
             ServerResponse<T> response = new ServerResponse<T>();
-            SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
-            if (c == null)
-                return new ServerResponse<T> {ResultCode = ResultCodes.InvalidFingerprint, ErrorMessage = "Unable to obtain private key for signature '" + resp.Object.Fingerprint + "'."};
             try
             {
+                SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
                 T obj = c.Verify<ServerSignedRequest<T>, T>(resp);
                 return new ServerResponse<T> { ResultCode = ResultCodes.Ok, Response = obj };
             }
-            catch (ResultCodeException e)
-            {
-                Logger.ErrorException(e.Message, e);
-                return new ServerResponse<T>() { ErrorMessage = e.Message, ResultCode = e.Code };
-            }
             catch (Exception e)
             {
-                Logger.ErrorException(e.Message, e);
-                return new ServerResponse<T> { ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError };
+                response.PopulateFromException(e, Logger);
+                return response;
             }
         }
         internal async Task<ServerResponse<T>> UnwrapResponse<T>(ServerSignedResponse<T> resp)
         {
             ServerResponse<T> response = new ServerResponse<T>();
-            SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
-            if (c == null)
-                return response;
+           
             try
             {
+                SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
                 return c.Verify<ServerSignedResponse<T>, ServerResponse<T>>(resp);
-            }
-            catch (ResultCodeException e)
-            {
-                Logger.ErrorException(e.Message, e);
-                return new ServerResponse<T>() { ErrorMessage = e.Message, ResultCode = e.Code };
             }
             catch (Exception e)
             {
-                Logger.ErrorException(e.Message, e);
-                return new ServerResponse<T> { ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError };
+                response.PopulateFromException(e, Logger);
+                return response;
             }
         }
         internal async Task<ServerResponse> UnwrapResponse(ServerSignedResponse resp)
         {
             ServerResponse response = new ServerResponse();
-            SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
-            if (c == null)
-                return response;
             try
             {
+                SignatureHelper c = await GetSignatureHelper(resp.Object.Fingerprint, response);
                 return c.Verify<ServerSignedResponse, ServerResponse>(resp);
-            }
-            catch (ResultCodeException e)
-            {
-                Logger.ErrorException(e.Message, e);
-                return new ServerResponse { ErrorMessage = e.Message, ResultCode = e.Code };
             }
             catch (Exception e)
             {
-                Logger.ErrorException(e.Message, e);
-                return new ServerResponse { ErrorMessage = "System Error", ResultCode = ResultCodes.SystemError };
+                response.PopulateFromException(e, Logger);
+                return response;
             }
         }
     }

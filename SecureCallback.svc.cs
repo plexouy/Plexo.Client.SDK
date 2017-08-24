@@ -7,6 +7,7 @@ using System.ServiceModel;
 using System.Threading.Tasks;
 using Plexo.Client.SDK.Certificates;
 using Plexo.Client.SDK.Logging;
+using Plexo.Exceptions;
 using Plexo.Helpers;
 
 namespace Plexo.Client.SDK
@@ -17,85 +18,54 @@ namespace Plexo.Client.SDK
         private static readonly ICallback CallbackImplementation;
         private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
-        public async Task<ClientSignedResponse> Instrument(ServerSignedRequest<IntrumentCallback> instrument)
+
+        private async Task<ClientSignedResponse> SignWrapper<T>(ServerSignedRequest<T> request, Func<T, Task<ClientResponse>> func) where T : IClientCallback
         {
-            ServerResponse<IntrumentCallback> sins;
+            ServerResponse<T> sins = new ServerResponse<T>();
             try
             {
-                PaymentGatewayClient cl = PaymentGatewayClientFactory.GetClient(instrument.Object.Object.Client);
+                PaymentGatewayClient cl = PaymentGatewayClientFactory.GetClient(request.Object.Object.Client);
                 if (cl == null)
-                    return GenerateError(ResultCodes.ClientServerError, instrument.Object.Object.Client, "Unable to locate PaymentGatewayClient for client '" + instrument.Object.Object.Client + "'.");
+                    throw new ResultCodeException(ResultCodes.ClientServerError, ("en", $"Unable to locate PaymentGatewayClient for client '{request.Object.Object.Client}'."), ("es", $"No puedo encontrar una clase que defina a PaymentGatewayClient con el client '{request.Object.Object.Client}'."));
                 using (var scope = new FlowingOperationContextScope(cl.InnerChannel))
                 {
-                    sins = await cl.UnwrapRequest(instrument).ContinueOnScope(scope);
-                
+                    sins = await cl.UnwrapRequest(request).ContinueOnScope(scope);
                 }
-                if (sins.ResultCode!=ResultCodes.Ok)
-                    return GenerateError(ResultCodes.ClientServerError, instrument.Object.Object.Client, sins.ErrorMessage);
-            }
-            catch (Exception e)
-            {
-                return GenerateError(ResultCodes.ClientServerError, instrument.Object.Object.Client, "System Error",e.ToString());
-            }
-            if (CallbackImplementation == null)
-                return GenerateError(ResultCodes.ClientServerError, instrument.Object.Object.Client, "Callback message lost.There is no ICallback implementation");
-            ClientResponse cr=await CallbackImplementation.Instrument(sins.Response);
-            cr.Client = instrument.Object.Object.Client;
-            try
-            {
+                if (sins.ResultCode != ResultCodes.Ok)
+                    return GenerateError(sins, request.Object.Object.Client);
+                if (CallbackImplementation == null)
+                    throw new ResultCodeException(ResultCodes.ClientServerError, ("en", "Callback message lost.There is no ICallback implementation"), ("es", "Mensaje del callback pedido. No hay implementacion de ICallback"));
+                ClientResponse cr = await func(sins.Response);
+                cr.Client = request.Object.Object.Client;
                 return CertificateHelperFactory.Instance.Sign<ClientSignedResponse, ClientResponse>(cr.Client, cr);
             }
             catch (Exception e)
             {
-                return GenerateError(ResultCodes.ClientServerError, instrument.Object.Object.Client, "System Error", e.ToString());
+                sins.PopulateFromException(e, Logger);
+                return GenerateError(sins, request.Object.Object.Client);
             }
+        }
+        public async Task<ClientSignedResponse> Instrument(ServerSignedRequest<IntrumentCallback> instrument)
+        {
+            return await SignWrapper(instrument, i => CallbackImplementation.Instrument(i));            
         }
 
         public async Task<ClientSignedResponse> Payment(ServerSignedRequest<TransactionCallback> transaction)
         {
-
-            ServerResponse<TransactionCallback> sins;
-            try
-            {
-                PaymentGatewayClient cl = PaymentGatewayClientFactory.GetClient(transaction.Object.Object.Client);
-                if (cl == null)
-                    return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, "Unable to locate PaymentGatewayClient for client '" + transaction.Object.Object.Client + "'.");
-                using (var scope = new FlowingOperationContextScope(cl.InnerChannel))
-                {
-                    sins = await cl.UnwrapRequest(transaction).ContinueOnScope(scope);
-
-                }
-                if (sins.ResultCode != ResultCodes.Ok)
-                    return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, sins.ErrorMessage);
-            }
-            catch (Exception e)
-            {
-                return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, "System Error", e.ToString());
-            }
-            if (CallbackImplementation == null)
-                return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, "Callback message lost.There is no ICallback implementation");
-            ClientResponse cr = await CallbackImplementation.Payment(sins.Response);
-            cr.Client = transaction.Object.Object.Client;
-            try
-            {
-                return CertificateHelperFactory.Instance.Sign<ClientSignedResponse, ClientResponse>(cr.Client, cr);
-            }
-            catch (Exception e)
-            {
-                return GenerateError(ResultCodes.ClientServerError, transaction.Object.Object.Client, "System Error", e.ToString());
-            }
+            return await SignWrapper(transaction, t => CallbackImplementation.Payment(t));
         }
 
 
-        private ClientSignedResponse GenerateError(ResultCodes resultcode, string client, string msg, string logmsg=null)
-        {
-            Logger.Error(logmsg ?? msg);
+        private ClientSignedResponse GenerateError(ServerResponse resp, string client)
+        {            
             ClientResponse r = new ClientResponse();
             r.Client = client;
-            r.ResultCode = resultcode;
-            r.ErrorMessage = msg;
+            r.I18NErrorMessages = resp.I18NErrorMessages;
+            r.ErrorMessage = resp.ErrorMessage;
+            r.ResultCode = resp.ResultCode;
             return CertificateHelperFactory.Instance.Sign<ClientSignedResponse, ClientResponse>(r.Client, r);
         }
+
         static SecureCallback()
         {
             CallbackImplementation = (ICallback)AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a => a.GetInterfaces().Contains(typeof(ICallback))).Select(a => Activator.CreateInstance(a)).FirstOrDefault();
