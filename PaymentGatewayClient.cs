@@ -90,6 +90,21 @@ namespace Plexo.Client.SDK
                 SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
             }            
         }
+
+        public async Task<ServerResponse<PaymentInstrument>> CreateBankInstrument(CreateBankInstrumentRequest request)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.CreateBankInstrument, request);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
         public async Task<ServerResponse<List<IssuerInfo>>> GetSupportedIssuers()
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
@@ -209,6 +224,34 @@ namespace Plexo.Client.SDK
             {
                 SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
                 return await WrapperT(Channel.DeleteIssuerCommerce, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<TransactionCursor>> ObtainTransactions(TransactionQuery query)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.ObtainTransactions, query);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<string>> ObtainCSVTransactions(TransactionQuery query)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.ObtainCSVTransactions, query);
             }
             finally
             {
