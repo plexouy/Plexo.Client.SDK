@@ -37,7 +37,7 @@ namespace Plexo.Client.SDK
                     throw new ResultCodeException(ResultCodes.ClientServerError, ("en", "Callback message lost.There is no ICallback implementation"), ("es", "Mensaje del callback pedido. No hay implementacion de ICallback"));
                 ClientResponse cr = await func(sins.Response);
                 cr.Client = request.Object.Object.Client;
-                return CertificateHelperFactory.Instance.Sign<ClientSignedResponse, ClientResponse>(cr.Client, cr);
+                return CertificateHelperFactory.Instance.SignClient<ClientSignedResponse, ClientResponse>(cr.Client, cr);
             }
             catch (Exception e)
             {
@@ -63,7 +63,7 @@ namespace Plexo.Client.SDK
             r.I18NErrorMessages = resp.I18NErrorMessages;
             r.ErrorMessage = resp.ErrorMessage;
             r.ResultCode = resp.ResultCode;
-            return CertificateHelperFactory.Instance.Sign<ClientSignedResponse, ClientResponse>(r.Client, r);
+            return CertificateHelperFactory.Instance.SignClient<ClientSignedResponse, ClientResponse>(r.Client, r);
         }
 
         static SecureCallback()

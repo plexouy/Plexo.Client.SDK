@@ -11,7 +11,7 @@ namespace Plexo.Client.SDK
             lock (Instances)
             {
                 if (!Instances.ContainsKey(clientname))
-                    Instances[clientname] = PaymentGatewayClient.Create(Properties.Settings.Default.PaymentServerUrl, clientname);
+                    Instances[clientname] = PaymentGatewayClient.CreateClient(Properties.Settings.Default.PaymentServerUrl, clientname);
                 return Instances[clientname];
             }
         }

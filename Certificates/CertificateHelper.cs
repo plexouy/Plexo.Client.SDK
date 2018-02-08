@@ -10,24 +10,30 @@ namespace Plexo.Client.SDK.Certificates
 {
     public class CertificateHelper
     {
-        private Dictionary<string, SignatureHelper> SignKeys { get; } = new Dictionary<string, SignatureHelper>();
-        internal Dictionary<string, Dictionary<string, SignatureHelper>> VerifyKeys = new Dictionary<string, Dictionary<string, SignatureHelper>>();
+        private Dictionary<string, SignatureHelper> ClientSignKeys { get; } = new Dictionary<string, SignatureHelper>();
+        private Dictionary<string, SignatureHelper> IssuerSignKeys { get; } = new Dictionary<string, SignatureHelper>();
+
+        internal Dictionary<string, SignatureHelper> VerifyKeys = new Dictionary<string, SignatureHelper>();
+
         internal SemaphoreSlim ServerCertSemaphore = new SemaphoreSlim(1);
 
-        public T Sign<T, TS>(string clientname, TS obj) where T : SignedObject<TS>, new()
+        public T SignClient<T, TS>(string clientname, TS obj) where T : SignedObject<TS>, new()
         {
-            if (SignKeys.ContainsKey(clientname))
-                return SignKeys[clientname].Sign<T,TS>(obj);
+            if (ClientSignKeys.ContainsKey(clientname))
+                return ClientSignKeys[clientname].Sign<T,TS>(obj);
             throw new CertificateException(("en",$"Unable to find certificate for client '{clientname}'"), ("en", $"No puedo encontrar certificado para el cliente '{clientname}'"));
         }
-
-        public TS Verify<T, TS>(string clientname, T obj) where T : SignedObject<TS>
+        public T SignIssuer<T, TS>(string issuername, TS obj) where T : SignedObject<TS>, new()
         {
-            if (!VerifyKeys.ContainsKey(clientname))
-                throw new CertificateException(("en", $"Unable to find certificate for client '{clientname}'"), ("en", $"No puedo encontrar certificado para el cliente '{clientname}'"));
-            if (!VerifyKeys[clientname].ContainsKey(obj.Object.Fingerprint))
-                throw new FingerprintException(("en",$"Unable to find certificate for fingerprint '{obj.Object.Fingerprint}' in client '{clientname}'"), ("es", $"No puedo encontrar el certificado de huella '{obj.Object.Fingerprint}' para el client '{clientname}'"));
-            return VerifyKeys[clientname][obj.Object.Fingerprint].Verify<T, TS>(obj);
+            if (IssuerSignKeys.ContainsKey(issuername))
+                return IssuerSignKeys[issuername].Sign<T, TS>(obj);
+            throw new CertificateException(("en", $"Unable to find certificate for issuer '{issuername}'"), ("en", $"No puedo encontrar certificado para el sello '{issuername}'"));
+        }
+        public TS Verify<T, TS>(T obj) where T : SignedObject<TS>
+        {
+            if (!VerifyKeys.ContainsKey(obj.Object.Fingerprint))
+                throw new FingerprintException(("en",$"Unable to find certificate for fingerprint '{obj.Object.Fingerprint}'"), ("es", $"No puedo encontrar el certificado de huella '{obj.Object.Fingerprint}'"));
+            return VerifyKeys[obj.Object.Fingerprint].Verify<T, TS>(obj);
 
         }
 
@@ -38,11 +44,20 @@ namespace Plexo.Client.SDK.Certificates
                 string[] spl = s.Split(',');
                 if (spl.Length!=2)
                     throw new ConfigurationException(("en","Invalid Client line in configuration"),("es","La Linea del cliente en la configuracion es invalida"));
-                VerifyKeys.Add(spl[0].Trim(),new Dictionary<string, SignatureHelper>());
                 X509Certificate2 priv = SearchCertificate(spl[1].Trim());
                 if (priv == null)
                     throw new CertificateException(("en",$"Unable to find Certificate '{spl[1].Trim()}' in the X509 Store, please make sure that the user using this context has security access to the certificate"), ("en", $"No puedo encontar el certificado '{spl[1].Trim()}' el el Store de Certficado, asegurese que el certificado este instalado, y que el usuario que corrar el contexto de la aplicacion tenga permisos para acceder a este"));
-                SignKeys.Add(spl[0].Trim(),new SignatureHelper(priv,true));
+                ClientSignKeys.Add(spl[0].Trim(),new SignatureHelper(priv,true));
+            }
+            foreach (string s in Settings.Default.Issuers)
+            {
+                string[] spl = s.Split(',');
+                if (spl.Length != 2)
+                    throw new ConfigurationException(("en", "Invalid Isser line in configuration"), ("es", "La Linea del sello en la configuracion es invalida"));
+                X509Certificate2 priv = SearchCertificate(spl[1].Trim());
+                if (priv == null)
+                    throw new CertificateException(("en", $"Unable to find Certificate '{spl[1].Trim()}' in the X509 Store, please make sure that the user using this context has security access to the certificate"), ("en", $"No puedo encontar el certificado '{spl[1].Trim()}' el el Store de Certficado, asegurese que el certificado este instalado, y que el usuario que corrar el contexto de la aplicacion tenga permisos para acceder a este"));
+                IssuerSignKeys.Add(spl[0].Trim(), new SignatureHelper(priv, true));
             }
         }
 

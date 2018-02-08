@@ -12,7 +12,7 @@ namespace Plexo.Client.SDK.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.3.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.5.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -25,10 +25,18 @@ namespace Plexo.Client.SDK.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute(@"<?xml version=""1.0"" encoding=""utf-16""?>
-<ArrayOfString xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
-  <string>TestClientName, TestCertificateName, TestOptionalCertificatePassword</string>
-</ArrayOfString>")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string PaymentServerUrl {
+            get {
+                return ((string)(this["PaymentServerUrl"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("<?xml version=\"1.0\" encoding=\"utf-16\"?>\r\n<ArrayOfString xmlns:xsi=\"http://www.w3." +
+            "org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\r\n  <s" +
+            "tring>TestClientName, TestCertificateName</string>\r\n</ArrayOfString>")]
         public global::System.Collections.Specialized.StringCollection Clients {
             get {
                 return ((global::System.Collections.Specialized.StringCollection)(this["Clients"]));
@@ -37,10 +45,12 @@ namespace Plexo.Client.SDK.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string PaymentServerUrl {
+        [global::System.Configuration.DefaultSettingValueAttribute("<?xml version=\"1.0\" encoding=\"utf-16\"?>\r\n<ArrayOfString xmlns:xsi=\"http://www.w3." +
+            "org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\r\n  <s" +
+            "tring>TestIssuerName, TestCertificateName</string>\r\n</ArrayOfString>")]
+        public global::System.Collections.Specialized.StringCollection Issuers {
             get {
-                return ((string)(this["PaymentServerUrl"]));
+                return ((global::System.Collections.Specialized.StringCollection)(this["Issuers"]));
             }
         }
     }
