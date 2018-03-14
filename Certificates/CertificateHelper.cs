@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using Plexo.Client.SDK.Logging;
 using Plexo.Client.SDK.Properties;
 using Plexo.Exceptions;
 using Plexo.Helpers;
@@ -60,9 +61,11 @@ namespace Plexo.Client.SDK.Certificates
                 IssuerSignKeys.Add(spl[0].Trim(), new SignatureHelper(priv, true));
             }
         }
+        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
         private X509Certificate2 SearchCertificate(string certname)
         {
+            Logger.Debug("Looking for certificate: "+certname);
             StoreName[] stores = {StoreName.My, StoreName.TrustedPublisher, StoreName.TrustedPeople, StoreName.Root, StoreName.CertificateAuthority, StoreName.AuthRoot, StoreName.AddressBook};
             StoreLocation[] locations = { StoreLocation.CurrentUser, StoreLocation.LocalMachine};
             foreach (StoreLocation location in locations)
@@ -73,8 +76,9 @@ namespace Plexo.Client.SDK.Certificates
                     store.Open(OpenFlags.ReadOnly);
                     foreach (X509Certificate2 m in store.Certificates)
                     {
-                        if (m.Subject.Equals("CN=" + certname, StringComparison.InvariantCultureIgnoreCase))
+                        if ((m.Subject.IndexOf("CN=" + certname, 0, StringComparison.InvariantCultureIgnoreCase) >= 0) || (m.Issuer.IndexOf("CN=" + certname, 0, StringComparison.InvariantCultureIgnoreCase) >= 0))
                         {
+                            Logger.Debug("Certificate: " + certname + " found, private key: " + (m.HasPrivateKey ? "Available" : "Not Available"));
                             store.Close();
                             return m;
                         }
