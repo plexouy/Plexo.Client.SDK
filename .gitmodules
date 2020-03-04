@@ -3,4 +3,4 @@
 	url = https://github.com/gOOvaUY/Goova.JsonDataContractSerializer
 [submodule "Plexo.Models"]
 	path = Plexo.Models
-	url = https://github.com/gOOvaUY/Plexo.Models
+	url = https://github.com/plexouy/Plexo.Models.git
