@@ -31,11 +31,13 @@ namespace Plexo.Client.SDK
         {
             try
             {
-                WebHttpBinding binding = new WebHttpBinding();
-                binding.OpenTimeout = TimeSpan.FromSeconds(timeout);
-                binding.CloseTimeout = TimeSpan.FromSeconds(timeout);
-                binding.SendTimeout = TimeSpan.FromSeconds(timeout);
-                binding.ReceiveTimeout = TimeSpan.FromSeconds(timeout);
+                WebHttpBinding binding = new WebHttpBinding
+                {
+                    OpenTimeout = TimeSpan.FromSeconds(timeout),
+                    CloseTimeout = TimeSpan.FromSeconds(timeout),
+                    SendTimeout = TimeSpan.FromSeconds(timeout),
+                    ReceiveTimeout = TimeSpan.FromSeconds(timeout)
+                };
                 if (serverurl.StartsWith("https"))
                     binding.Security.Mode = WebHttpSecurityMode.Transport;
                 ServiceEndpoint svc = new ServiceEndpoint(ContractDescription.GetContract(typeof(ISecurePaymentGateway)),
@@ -90,6 +92,7 @@ namespace Plexo.Client.SDK
                 SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
             }
         }
+
         public async Task<ServerResponse> DeleteInstrument(DeleteInstrumentRequest info)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
@@ -132,6 +135,7 @@ namespace Plexo.Client.SDK
             }
 
         }
+
         public async Task<ServerResponse<List<Commerce>>> GetCommerces()
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
@@ -145,6 +149,7 @@ namespace Plexo.Client.SDK
                 SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
             }
         }
+
         public async Task<ServerResponse<Commerce>> AddCommerce(CommerceRequest commerce)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
@@ -244,6 +249,20 @@ namespace Plexo.Client.SDK
             }
         }
 
+        public async Task<ServerResponse<Commerce>> GetProvidedCodeCommerce(CommerceRequest commerce)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.GetProvidedCodeCommerce, commerce);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
         public async Task<ServerResponse<TransactionCursor>> ObtainTransactions(TransactionQuery query)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
@@ -286,7 +305,6 @@ namespace Plexo.Client.SDK
             }
         }
 
-
         public async Task<ServerResponse<Transaction>> Purchase(PaymentRequest payment)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
@@ -308,6 +326,20 @@ namespace Plexo.Client.SDK
             {
                 SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
                 return await WrapperTS(Channel.Cancel, cancel);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<Transaction>> Refund(RefundRequest payment)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.Refund, payment);
             }
             finally
             {
@@ -371,7 +403,49 @@ namespace Plexo.Client.SDK
             }
         }
 
+        public async Task<ServerResponse> BlackListAdd(BlacklistRequest request)
+        {
+            var bla = request;
 
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperT(Channel.BlackListAdd, request);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse> BlackListDelete(BlacklistRequest request)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperT(Channel.BlackListDelete, request);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+        public async Task<ServerResponse<List<BlacklistRequest>>> GetBlackList()
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperS(Channel.GetBlackList);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
 
         private async Task<ServerResponse<S>> WrapperTS<T, S>(Func<ClientSignedRequest<T>, Task<ServerSignedResponse<S>>> func, T data)
         {
