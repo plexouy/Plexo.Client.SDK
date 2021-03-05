@@ -79,6 +79,21 @@ namespace Plexo.Client.SDK
         }
 
 
+        public async Task<ServerResponse<Session>> ExpressCheckout(ExpressCheckoutRequest expressCheckout)
+        {
+            var currentSynchronizationContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(new OperationContextSynchronizationContext(InnerChannel));
+                return await WrapperTS(Channel.ExpressCheckout, expressCheckout);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(currentSynchronizationContext);
+            }
+        }
+
+
         public async Task<ServerResponse<Session>> Authorize(Authorization authorization)
         {
             var currentSynchronizationContext = SynchronizationContext.Current;
@@ -559,5 +574,7 @@ namespace Plexo.Client.SDK
                 return response;
             }
         }
+
+
     }
 }
